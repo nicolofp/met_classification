@@ -32,7 +32,7 @@ M_buneg = rescale(M_buneg)
 mean(M_buneg,dims = 1)
 std(M_buneg,dims = 1)                        
 
-qpca_buneg = pca(M_buneg,2)
+qpca_buneg = qpca(M_buneg,2)
 X,Y,ch = fit!(qpca_buneg)
 scatter(qpca_buneg.X[1,:],qpca_buneg.X[2,:])
 
