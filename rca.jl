@@ -84,3 +84,5 @@ tmp_vi = tmp_vi * Matrix([-1 0; 0 -1])
 scatter!(tmp_vi[:, 1],   
         tmp_vi[:, 2]; 
         xlabel="z1", ylabel="z2", col="red")
+
+
