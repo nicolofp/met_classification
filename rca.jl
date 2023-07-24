@@ -30,7 +30,7 @@ M_imp = impute(Matrix(buneg[buneg.metabolite .∈ Ref(valid_met),2:101]),
 buneg_imp = DataFrame(hcat(valid_met, M_imp), :auto)
 rename!(buneg_imp,Symbol.(vcat("metabolite",df.sample_ID))) 
        
-M_buneg = Matrix(Matrix{Float64}(buneg_imp[:,2:101])')
+M_buneg = Matrix(Matrix{Float64}(buneg_imp[1:10,2:101])')
 #M_buneg = Matrix{Float64}(buneg_imp[:,2:101])
 
 M_buneg = rescale(M_buneg)
@@ -86,3 +86,41 @@ scatter!(tmp_vi[:, 1],
         xlabel="z1", ylabel="z2", col="red")
 
 
+@model function pPCA_dir(X::AbstractMatrix{<:Real}, k::Int)
+        # retrieve the dimension of input matrix X.
+        N, D = size(X)
+        
+        # weights/loadings W
+        #W ~ filldist(Normal(), D, k)
+        W ~ filldist(Dirichlet(D, 1), k)
+        
+        # latent variable z
+        Z ~ filldist(Normal(), k, N)
+        
+        # mean offset
+        μ ~ MvNormal(Eye(D))
+        c_mean = W * Z .+ reshape(μ, D, 1)
+        return X ~ arraydist([MvNormal(m, Eye(N)) for m in eachcol(c_mean')])
+end;
+
+ppca = pPCA_dir(M_buneg,1)
+
+#rand(filldist(Normal(), 10, 1))
+#sum(rand(filldist(Dirichlet(10, 1), 1)))
+
+# ADVI
+advi = ADVI(10, 1000)
+q = vi(ppca, advi);
+
+chain_ppca = sample(ppca, NUTS(), 1000)
+
+chain_ppca[:,1:100,:]
+
+W = reshape(mean(group(chain_ppca, :W))[:, 2], (10, 1))
+Z = reshape(mean(group(chain_ppca, :Z))[:, 2], (1, 100))
+μ = mean(group(chain_ppca, :μ))[:, 2]
+
+sum(W)
+
+mat_rec = W * Z .+ repeat(μ; inner=(1, 100))
+M_buneg
