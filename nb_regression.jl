@@ -1,7 +1,6 @@
-
 using DataFrames, Arrow, Random, CSV, CategoricalArrays
 using LinearAlgebra, Distributions, Statistics, HypothesisTests
-using Distances, StatsBase, LowRankModels
+using Distances, StatsBase, LowRankModels, Clustering, Optim
 using Plots, StatsPlots 
 
 df = DataFrame(Arrow.Table("C:/Users/nicol/Documents/Datasets" * 
@@ -15,6 +14,7 @@ Mrna = Matrix(Matrix{Float64}(mRNA[:,2:401])')
 svd_mrna = svd(Mrna)
 var_expl = (svd_mrna.S).^2 ./ sum((svd_mrna.S).^2)
 
+# First 10 component explain ~98% of the variance
 sum(var_expl[1:10])
 
 scatter(svd_mrna.U[:,1],
@@ -24,24 +24,11 @@ rescale(A; dims=1) = (A .- mean(A, dims=dims)) ./ max.(std(A, dims=dims), eps())
 
 Mrna_c = rescale(Mrna)                        
 
-qpca_df = qpca(Mrna_c,2)
-X,Y,ch = fit!(qpca_df)
-scatter(qpca_df.X[1,:],qpca_df.X[2,:])
-
-poiss_loss = GLRM(Mrna,PoissonLoss(),ZeroReg(),ZeroReg(),2)
-X,Y,ch = fit!(poiss_loss)
-scatter(poiss_loss.X[1,:],poiss_loss.X[2,:])
-
 mv = DataFrame(media_ge = vec(mean(Mrna, dims = 1)),
                std_ge = vec(std(Mrna, dims = 1)))
 
 scatter(mv[:,1],mv[:,2])
 histogram(Mrna[:,6])
-
-cutting = cut(Mrna[:,1],collect(m:p:M))
-
-sort(countmap())
-
 histogram(Mrna[:,249])
 scatter(Mrna[:,1],df.bmi)
 
@@ -58,11 +45,29 @@ for i in 1:size(Mrna,2)
     Dmat[i,2:51] = h.weights'
 end 
 
-Dmat = Matrix{Float64}(Dmat[:,2:51])
-svd_dmat = svd(Dmat)
-var_dmat = (svd_dmat.S).^2 ./ sum((svd_dmat.S).^2)
+asthma = df.asthma[1:400]
+valid = [!ismissing(asthma[i]) for i in 1:400]
+y = Array{Int64}(asthma[valid])
+y = recode(y, 0=>0, 1:2=>1)
+x = Mrna_c[valid,:]
 
-sum(var_expl[1:10])
+include("ard_logistic_regression.jl")
 
-scatter(svd_mrna.U[:,1],
-        svd_mrna.U[:,2])
+# Sample using HMC.
+m = logistic_ard(x, y)
+chain_lard = sample(m, NUTS(), 1500);
+quantile(chain_lard[:,1,1],0.025)
+
+ard_res = hcat(string.(names(chain_lard)[1:4206]),zeros(4206,3))
+for i in 1:4206
+    ard_res[i,2] = quantile(chain_lard[:,i,1],0.025)
+    ard_res[i,3] = mean(chain_lard[:,i,1])
+    ard_res[i,4] = quantile(chain_lard[:,i,1],0.975)
+end
+
+ard_res = hcat(ard_res,sign.(ard_res[:,2]) .== sign.(ard_res[:,4]))
+
+sum(ard_res[contains.(ard_res[:,1],Ref("β₁")),5])
+
+
+

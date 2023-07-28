@@ -11,7 +11,7 @@ Turing.setrdcache(true)
 
     # Set variance prior and ARD weights
     σ₂ ~ Gamma(2.0, 2.0)
-    α  ~ filldist(Gamma(1.0,1.0),D)
+    α  ~ filldist(Gamma(2.0,2.0),D)
 
     # Set betas prior.
     β₀ ~ Normal(0, 20)
@@ -25,8 +25,4 @@ Turing.setrdcache(true)
     end
 end
 
-# Sample using HMC.
-m = logistic_ard(x, y)
-chain = sample(m, NUTS(), 1500);
 
-chain[:,23:42,1]
