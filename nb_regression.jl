@@ -35,8 +35,9 @@ scatter(Mrna[:,1],df.bmi)
 heatmap(cor(Mrna))
 
 Dmat = hcat(string.(mRNA.Gene),zeros(2102,50))
-#Threads.@threads 
-for i in 1:size(Mrna,2)
+
+# MultiThread --> automatically ordered  
+Threads.@threads for i in 1:size(Mrna,2)
     println(i)
     m = minimum(Mrna[:,i])
     M = maximum(Mrna[:,i])
@@ -69,5 +70,28 @@ ard_res = hcat(ard_res,sign.(ard_res[:,2]) .== sign.(ard_res[:,4]))
 
 sum(ard_res[contains.(ard_res[:,1],Ref("β₁")),5])
 
+histogram(Mrna[:,2])
+histogram(rand(Poisson(mean(Mrna[:,2])),400),
+          color = "orange")
+
+@model function gamma_poisson(x)
+    # Size of the sample
+    N, D = size(x)
+    
+    # Prior of the Gamma background
+    a0 ~ Gamma(1,1)
+    b0 ~ Gamma(1,1)
+    
+    # background rate
+    br ~ filldist(Gamma(a0,b0),N)
+
+    for n in 1:N
+        x[n,:] ~ Poisson(br[n])
+    end
+end;          
+
+Mrna_t = Matrix{Float64}(Mrna')
+m = gamma_poisson(Mrna_t)
+chain_gp = sample(m, NUTS(), 1500);
 
 
