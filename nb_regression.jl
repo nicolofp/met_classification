@@ -1,7 +1,7 @@
 using DataFrames, Arrow, Random, CSV, CategoricalArrays
 using LinearAlgebra, Distributions, Statistics, HypothesisTests
-using Distances, StatsBase, LowRankModels, Clustering, Optim
-using Plots, StatsPlots 
+using Distances, StatsBase, LowRankModels, Clustering, Optim, GigaSOM, DPMMSubClusters
+using Plots, StatsPlots, Distributed
 
 df = DataFrame(Arrow.Table("C:/Users/nicol/Documents/Datasets" * 
                             "/GSE154829/GSE154829_cov.arrow"));
@@ -94,4 +94,33 @@ Mrna_t = Matrix{Float64}(Mrna')
 m = gamma_poisson(Mrna_t)
 chain_gp = sample(m, NUTS(), 1500);
 
+X = Matrix(x')
+som = initGigaSOM(X, 10, 10)
+som = trainGigaSOM(som, X)
+
+som.codes
+tmp = mapToGigaSOM(som, X)
+countmap(tmp.index)
+e = embedGigaSOM(som,X)
+
+scatter(e[:,1],e[:,2])
+
+@everywhere using DPMMSubClusters
+@everywhere using Random
+
+function plot_dp_2d(pts, labels)
+    plt=Plots.plot()
+    Plots.plot!(pts[1,:],pts[2,:], seriestype=:scatter, color = Int64.(labels), markersize = 3, markerstrokewidth = 0.5)
+    return plt
+end
+
+Random.seed!(1245)
+x,labels,clusters = generate_gaussian_data(10^4,2,6,80.0)
+
+plot_dp_2d(x, labels)
+
+
+svd_met = svd(X)
+labels,clusters,weights = DPMMSubClusters.fit(svd_met.U[:,1:2],1.0, iters = 100, seed = 1234)
+plot_dp_2d(X,labels)
 
