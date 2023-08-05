@@ -124,3 +124,5 @@ svd_met = svd(X)
 labels,clusters,weights = DPMMSubClusters.fit(svd_met.U[:,1:2],1.0, iters = 100, seed = 1234)
 plot_dp_2d(X,labels)
 
+
+
