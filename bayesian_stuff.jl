@@ -102,6 +102,38 @@ rand(Dirichlet(10, 1))
     return y ~ MvNormal(mu, sqrt(σ₂))
 end
 
+softmax(x) = exp.(x) ./ sum(exp.(x))
+
+function DirichletLogit(μ, ϕ)
+    α = softmax(μ) * ϕ
+    return Dirichlet(α)
+end
+
+
+@model function bwqs_soft(cx, mx, y)
+    
+    # Set variance prior.
+    σ₂ ~ Gamma(2.0, 2.0)
+
+    # Set intercept prior.
+    intercept ~ Normal(0, 20)
+    beta ~ Normal(0, 20)
+    ncovariates = size(cx, 2)
+    delta ~ filldist(Normal(0, 20), ncovariates)
+
+    # Set the priors on our coefficients.
+    nfeatures = size(mx, 2)
+    alpha ~ filldist(Gamma(10.0, 5.0), nfeatures)
+    phi ~ Gamma(2.0,2.0)
+    w ~ DirichletLogit(alpha, phi) 
+
+    # Calculate all the mu terms. 
+    mu = intercept .+ beta * (mx * w) .+ cx * delta
+
+    return y ~ MvNormal(mu, sqrt(σ₂))
+end
+
+
 # Mixture Test
 XM = rand(Normal(0.0,0.4),200,5)
 XC = rand(Normal(0.0,0.4),200,2)
@@ -117,5 +149,7 @@ end
 mmix = a .+ b * (XM * w) + XC * d
 y = rand(MvNormal(mmix,0.85))
 
-mx = bwqs_new(XC, XM, y)
-chain_mx = sample(mx, NUTS(), 5000);#, thinning=10, discard_initial=2000);
+mx = bwqs_soft(XC, XM, y)
+chain_mx = sample(mx, NUTS(), 1500);#, thinning=10, discard_initial=2000);
+
+
