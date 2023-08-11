@@ -62,4 +62,3 @@ scatter(df1.gestage,X_genexpr[:,genexpr.ID_REF .== "30850_at"])
 
 histogram(X_genexpr[:,1])
 histogram!(rand(Poisson(mean(X_genexpr[:,1])),165))
-
