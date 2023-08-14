@@ -8,7 +8,6 @@ Turing.setrdcache(true)
 function NegativeBinomial2(μ, ϕ)
     p = 1 / (1 + μ / ϕ)
     r = ϕ
-
     return NegativeBinomial(r, p)
 end
 
