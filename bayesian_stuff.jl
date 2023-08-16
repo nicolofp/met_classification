@@ -1,13 +1,15 @@
 using LinearAlgebra, Distributions, Statistics, StatsBase
 using Turing, Distributions, Optim, Zygote, ReverseDiff
-using Plots, StatsPlots
+using Plots, StatsPlots, LazyArrays
 using StatsFuns: logistic
 Turing.setadbackend(:reversediff)
 Turing.setrdcache(true)
 
 function NegativeBinomial2(μ, ϕ)
     p = 1 / (1 + μ / ϕ)
+    p = p > 0 ? p : 1e-4 # numerical stability
     r = ϕ
+
     return NegativeBinomial(r, p)
 end
 
@@ -53,12 +55,12 @@ chain_nb = sample(m, NUTS(), 10000);
 
     #priors
     λ ~ InverseGamma(0.1, 0.1)
-    #α ~ Normal(0, λ)
-    β ~ filldist(Normal(0, λ), p)
+    α ~ Normal(0, 10)
+    β ~ filldist(Normal(0, 10), p)
 
     ## link
-    #z = α .+ X * β
-    z = X * β
+    z = α .+ X * β
+    #z = X * β
     mu = exp.(z)
 
     #likelihood
@@ -67,13 +69,30 @@ chain_nb = sample(m, NUTS(), 10000);
     end
 end
 
-m1 = nb_regression_ard(X,y)
+m1 = NegativeBinomialRegression(X,y)
 chain_nb1 = sample(m1, NUTS(), 10000);
 
 vcat(mean(Array(chain_nb[:,8:12,1]),dims = 1),
      mean(Array(chain_nb1[:,8:12,1]),dims = 1), 
      betas')
 
+@model function negbinreg(X, y; predictors=size(X, 2))
+    #priors
+    α ~ Normal(0, 10)
+    # β ~ filldist(TDist(3), predictors)
+    β ~ filldist(Normal(0, 10), predictors)
+    # ϕ⁻ ~ Gamma(0.1, 0.1)
+    # ϕ = 1 / ϕ⁻
+    ϕ ~ InverseGamma(0.1, 0.1)
+
+    #likelihood
+    return y ~ arraydist(LazyArray(@~ NegativeBinomial2.(exp.(α .+ X * β), ϕ)))
+end
+
+m1 = NegativeBinomialRegression(X,y)
+m2 = negbinreg(X,y)
+chain_nb1 = sample(m1, NUTS(), 5000);
+chain_nb2 = sample(m2, NUTS(), 5000);
 
 a = rand(DirichletMultinomial(5, w))
 a/sum(a)
