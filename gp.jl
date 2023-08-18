@@ -42,5 +42,5 @@ open("met_classification/gamma_poisson_1.txt", "w") do file
 end
 
 dump(chain_nb1)
-chain_nb1.value
+
 
