@@ -171,6 +171,8 @@ mx = bwqs_soft(XC, XM, y)
 chain_mx = sample(mx, NUTS(), 1500);#, thinning=10, discard_initial=2000);
 
 
+
 # STD bwqs to account outlier and heavy tails
 # Spatial models
 # Mix model --> computational stabilty
+

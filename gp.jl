@@ -31,16 +31,14 @@ end;
 
 # Instantiate model
 m = gamma_poisson(X)
-chain_gp = sample(m, NUTS(), 1000);
+chain_gp = sample(m, NUTS(), MCMCThreads(), 1000, 3)
 
-#writedlm("gamma_poisson.log", Array(chain_gp[:,:,1]))
-writedlm("gamma_poisson_1.log", summarystats(chain_gp))
+# writedlm("gamma_poisson.log", Array(chain_gp[:,:,1]))
+# writedlm("gamma_poisson_1.log", tmp)
 
-tmp = summarystats(chain_gp)
-open("met_classification/gamma_poisson_1.txt", "w") do file
-    write(file, tmp)
-end
+tmp = DataFrame(summarystats(chain_gp))
+#open("met_classification/gamma_poisson_1.txt", "w") do file
+#    write(file, tmp)
+#end
 
-dump(chain_nb1)
-
-
+#dump(chain_gp)
