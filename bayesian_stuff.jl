@@ -111,7 +111,7 @@ rand(Dirichlet(10, 1))
 
     # Set the priors on our coefficients.
     nfeatures = size(mx, 2)
-    alpha ~ filldist(Gamma(2.0, 2.0), nfeatures)
+    alpha ~ filldist(Gamma(1.0, 1.0), nfeatures)
     w ~ Dirichlet(alpha) 
 
     # Calculate all the mu terms. 
@@ -134,16 +134,17 @@ end
     σ₂ ~ Gamma(2.0, 2.0)
 
     # Set intercept prior.
-    intercept ~ Normal(0, 20)
-    beta ~ Normal(0, 20)
+    intercept ~ Normal(0, 10)
+    beta ~ Normal(0, 10)
     ncovariates = size(cx, 2)
     delta ~ filldist(Normal(0, 20), ncovariates)
 
     # Set the priors on our coefficients.
     nfeatures = size(mx, 2)
-    alpha ~ filldist(Gamma(10.0, 5.0), nfeatures)
-    phi ~ Gamma(2.0,2.0)
-    w ~ DirichletLogit(alpha, phi) 
+    alpha ~ filldist(Exponential(1.0), nfeatures)
+    #phi ~ Gamma(2.0,2.0)
+    #w ~ DirichletLogit(alpha, phi) 
+    w = softmax(alpha)
 
     # Calculate all the mu terms. 
     mu = intercept .+ beta * (mx * w) .+ cx * delta
@@ -164,12 +165,13 @@ for i in 1:5
     XM[:,i] = ecdf(XM[:,i])(XM[:,i])*4
 end
 
-mmix = a .+ b * (XM * w) + XC * d
+mmix = a .+ b * (XM * w) .+ XC * d
 y = rand(MvNormal(mmix,0.85))
 
 mx = bwqs_soft(XC, XM, y)
-chain_mx = sample(mx, NUTS(), 1500);#, thinning=10, discard_initial=2000);
-
+mx1 = bwqs_new(XC, XM, y)
+chain_mx = sample(mx, NUTS(), 1000);#, thinning=10, discard_initial=2000);
+chain_mx1 = sample(mx1, NUTS(), 5000);
 
 
 # STD bwqs to account outlier and heavy tails

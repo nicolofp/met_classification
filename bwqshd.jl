@@ -5,27 +5,31 @@ using StatsFuns: logistic
 Turing.setadbackend(:reversediff)
 Turing.setrdcache(true)
 
-@model function varying_intercept_slope_mix(
+@model function hbwqs(
     M, X, idx, y; n_gr=length(unique(idx)), predictors=size(X, 2), nmix=size(M, 2)
     )
     #priors
     # α ~ Normal(mean(y), 2.5 * std(y))                     # population-level intercept
-    σ ~ Exponential(std(y))                               # residual SD
+    σ ~ Exponential(std(y))                                 # residual SD
     #prior for variance of random intercepts and slopes
     #usually requires thoughtful specification
     τₐ ~ truncated(Cauchy(0, 2); lower=0)                 # group-level SDs intercepts
     δ ~ filldist(Normal(0, 20), predictors)               # Covariates fixed  
     αₖ ~ filldist(Gamma(2.0, 2.0), nmix)              # Prior on Dirichlet alphas
     w ~ Dirichlet(αₖ)                                      # Dirichlet on simplex
-    # τᵦ ~ filldist(truncated(Cauchy(0, 2); lower=0), n_gr)  # group-level slopes SDs
+    #τᵦ ~ filldist(truncated(Cauchy(0, 2); lower=0), n_gr)  # group-level slopes SDs
     τᵦ ~ truncated(Cauchy(0, 2); lower=0)
     αⱼ ~ filldist(Normal(0, τₐ), n_gr)                     # group-level intercepts
     βⱼ ~ filldist(Normal(0, τᵦ), n_gr)          # group-level standard normal slopes
 
     #likelihood
-    #ŷ = α .+ αⱼ[idx] .+ X * βⱼ * τᵦ
-    ŷ = αⱼ[idx] .+ βⱼ * (M * w) .+ X * δ
-    return y ~ MvNormal(ŷ, σ^2 * I)
+    # ŷ = α .+ αⱼ[idx] .+ X * βⱼ * τᵦ
+    # ŷ = αⱼ[idx] .+ (M * w) * βⱼ * τᵦ .+ X * δ
+    # return y ~ MvNormal(ŷ, σ^2 * I)
+    for i in 1:size(X,1)
+        mu = αⱼ[idx[i]] + (M[i,:]' * w) * βⱼ[idx[i]] + X[i,:]' * δ
+        y[i] ~ Normal(mu,σ^2)
+    end
 end;
 
 # Example from: https://storopoli.io/Bayesian-Julia/pages/11_multilevel_models/
@@ -63,6 +67,29 @@ X = Matrix(select(cheese, Between(:cheese_A, :cheese_D)));
 y = cheese[:, :y];
 idx = cheese[:, :background_int];
 
+@model function hbwqs2(
+    M, X, idx, y; n_gr=length(unique(idx)), predictors=size(X, 2), nmix=size(M, 2)
+    )
+    #priors
+    # α ~ Normal(mean(y), 2.5 * std(y))                     # population-level intercept
+    σ ~ Exponential(std(y))                                 # residual SD
+    #prior for variance of random intercepts and slopes
+    #usually requires thoughtful specification
+    τₐ ~ truncated(Cauchy(0, 2); lower=0)                 # group-level SDs intercepts
+    δ ~ filldist(Normal(0, 20), predictors)               # Covariates fixed  
+    αₖ ~ filldist(Gamma(2.0, 2.0), nmix)              # Prior on Dirichlet alphas
+    w ~ Dirichlet(αₖ)                                      # Dirichlet on simplex
+    τᵦ ~ filldist(truncated(Cauchy(0, 2); lower=0), n_gr)  # group-level slopes SDs
+    #τᵦ ~ truncated(Cauchy(0, 2); lower=0)
+    αⱼ ~ filldist(Normal(0, τₐ), n_gr)                     # group-level intercepts
+    βⱼ ~ filldist(Normal(0, 1), 1, n_gr)          # group-level standard normal slopes
+
+    #likelihood
+    # ŷ = α .+ αⱼ[idx] .+ X * βⱼ * τᵦ
+    ŷ = αⱼ[idx] .+ (M * w) * βⱼ * τᵦ .+ X * δ
+    return y ~ MvNormal(ŷ, σ^2 * I)
+end;
+
 url = "C:/Users/nicol/Documents/Github_projects/hbwqs_repository/sim_hbwq.csv"
 DT = CSV.read(url, DataFrame)
 describe(DT)
@@ -72,5 +99,9 @@ X = Matrix(DT[:,vcat(8:12,15:17)]);
 y = DT[:, :y];
 idx = DT[:, :cohort];
 
-model_intercept = varying_intercept_slope_mix(M, X, idx, y)
-chain_intercept = sample(model_intercept, NUTS(), 1000)# MCMCThreads(), 1_000, 4)
+model_intercept = hbwqs2(M, X, idx, y)
+chain_intercept = sample(model_intercept, NUTS(), 1000)#, MCMCThreads(), 1_000, 4)
+
+tmp = [1, 3]
+tmp[idx]
+
