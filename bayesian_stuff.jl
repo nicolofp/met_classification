@@ -94,7 +94,7 @@ m2 = negbinreg(X,y)
 chain_nb1 = sample(m1, NUTS(), 5000);
 chain_nb2 = sample(m2, NUTS(), 5000);
 
-a = rand(DirichletMultinomial(5, w))
+a = rand(DirichletMultinomial(5, [0.5,0.25,0.25]))
 a/sum(a)
 rand(Dirichlet(10, 1))
 
@@ -111,7 +111,7 @@ rand(Dirichlet(10, 1))
 
     # Set the priors on our coefficients.
     nfeatures = size(mx, 2)
-    alpha ~ filldist(Gamma(1.0, 1.0), nfeatures)
+    alpha ~ filldist(Gamma(2.0, 2.0), nfeatures)
     w ~ Dirichlet(alpha) 
 
     # Calculate all the mu terms. 
@@ -142,9 +142,9 @@ end
     # Set the priors on our coefficients.
     nfeatures = size(mx, 2)
     alpha ~ filldist(Exponential(1.0), nfeatures)
-    #phi ~ Gamma(2.0,2.0)
-    #w ~ DirichletLogit(alpha, phi) 
-    w = softmax(alpha)
+    phi ~ Gamma(2.0,2.0)
+    w ~ DirichletLogit(alpha, phi) 
+    #w = softmax(alpha)
 
     # Calculate all the mu terms. 
     mu = intercept .+ beta * (mx * w) .+ cx * delta
@@ -152,10 +152,28 @@ end
     return y ~ MvNormal(mu, sqrt(σ₂))
 end
 
+@model function bwqs(cx, mx, y)
+    # Set variance prior.
+    σ₂ ~ Gamma(2.0, 2.0)
+
+    # Set intercept prior.
+    intercept ~ Normal(0, 20)
+    beta ~ Normal(0, 20)
+    ncovariates = size(cx, 2)
+    delta ~ filldist(Normal(0, 20), ncovariates)
+
+    # Set the priors on our coefficients.
+    nfeatures = size(mx, 2)
+    w ~ Dirichlet(nfeatures, 1) 
+
+    # Calculate all the mu terms.
+    mu = intercept .+ beta * (mx * w) .+ cx * delta
+    return y ~ MvNormal(mu, sqrt(σ₂))
+end
 
 # Mixture Test
-XM = rand(Normal(0.0,0.4),200,5)
-XC = rand(Normal(0.0,0.4),200,2)
+XM = rand(Normal(0.0,0.2),200,5)
+XC = rand(Normal(0.0,0.2),200,2)
 w = vec([0.5 0.2 0.2 0.05 0.05])
 a = 1.1
 b = -0.23
@@ -166,15 +184,27 @@ for i in 1:5
 end
 
 mmix = a .+ b * (XM * w) .+ XC * d
-y = rand(MvNormal(mmix,0.85))
+y = rand(MvNormal(mmix,0.85 * I))
+
+url = "C:/Users/nicol/Documents/bwqs_tmp.csv"
+DT = CSV.read(url, DataFrame)
+describe(DT)
+
+XM = Matrix(DT[:,2:6])
+XC = Matrix(DT[:,7:9])
+y = DT[:,:y]
 
 mx = bwqs_soft(XC, XM, y)
 mx1 = bwqs_new(XC, XM, y)
+mx2 = bwqs(XC, XM, y)
 chain_mx = sample(mx, NUTS(), 1000);#, thinning=10, discard_initial=2000);
-chain_mx1 = sample(mx1, NUTS(), 5000);
+chain_mx1 = sample(mx1, NUTS(), 1000);
+chain_mx2 = sample(mx2, NUTS(), 1000);
 
 
 # STD bwqs to account outlier and heavy tails
 # Spatial models
 # Mix model --> computational stabilty
 
+
+histogram(rand(Gamma(1.0,1.0),1000))

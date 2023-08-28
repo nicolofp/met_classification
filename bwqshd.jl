@@ -90,7 +90,7 @@ idx = cheese[:, :background_int];
     return y ~ MvNormal(ŷ, σ^2 * I)
 end;
 
-url = "C:/Users/nicol/Documents/Github_projects/hbwqs_repository/sim_hbwq.csv"
+url = "C:/Users/nicol/Documents/bwqs_tmp.csv"
 DT = CSV.read(url, DataFrame)
 describe(DT)
 
