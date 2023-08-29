@@ -1,5 +1,6 @@
 [deps]
 DPMMSubClusters = "2841fd70-8698-11e9-176d-6dfa142d2ee7"
+Lathe = "38d8eb38-e7b1-11e9-0012-376b6c802672"
 LazyArrays = "5078a376-72f3-5289-bfd5-ec5146d43c02"
 NNlib = "872c559c-99b0-510c-b3b7-b6c96a88d5cd"
 Turing = "fce5fe82-541a-59a6-adf8-730c64b5f9a0"

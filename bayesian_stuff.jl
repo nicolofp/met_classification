@@ -1,6 +1,6 @@
 using LinearAlgebra, Distributions, Statistics, StatsBase
 using Turing, Distributions, Optim, Zygote, ReverseDiff
-using Plots, StatsPlots, LazyArrays
+using Plots, StatsPlots, LazyArrays, Memoization
 using StatsFuns: logistic
 Turing.setadbackend(:reversediff)
 Turing.setrdcache(true)
@@ -199,12 +199,13 @@ mx1 = bwqs_new(XC, XM, y)
 mx2 = bwqs(XC, XM, y)
 chain_mx = sample(mx, NUTS(), 1000);#, thinning=10, discard_initial=2000);
 chain_mx1 = sample(mx1, NUTS(), 1000);
-chain_mx2 = sample(mx2, NUTS(), 1000);
+chain_mx2 = sample(mx2, NUTS(), 5000);
+chain_mx2b = sample(mx2, NUTS(), MCMCThreads(), 5000, 1);
 
+
+dump(chain_mx2)
 
 # STD bwqs to account outlier and heavy tails
 # Spatial models
 # Mix model --> computational stabilty
 
-
-histogram(rand(Gamma(1.0,1.0),1000))
