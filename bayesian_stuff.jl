@@ -186,8 +186,8 @@ end
 mmix = a .+ b * (XM * w) .+ XC * d
 y = rand(MvNormal(mmix,0.85 * I))
 
-url = "C:/Users/nicol/Documents/bwqs_tmp.csv"
-DT = CSV.read(url, DataFrame)
+url = "https://envbran.s3.us-east-2.amazonaws.com/bwqs_tmp.csv"
+DT = CSV.read(HTTP.get(url).body, DataFrame)
 describe(DT)
 
 XM = Matrix(DT[:,2:6])
