@@ -45,3 +45,31 @@ objective_value(shortest_path)
 
 value.(x)
 
+# Minimum flow-cost problem - Network problem
+c = [2, 4, 9, 11, 4, 3, 8, 7, 0, 15, 38, 18]
+b = [0, -19, 16, -33, 0, 0, 117]
+G = [-1 -1  1  0  1  0  0  0  0  1  0  0;
+      1  0  0  1  0  1  0  0  0  0  0  0;
+      0  0 -1 -1  0  0  0  0  0  0  0  0;
+      0  1  0  0  0  0  1  1  0  0  1  0;
+      0  0  0  0 -1 -1 -1  0  1  0  0  0;
+      0  0  0  0  0  0  0 -1 -1  0  0  1;
+      0  0  0  0  0  0  0  0  0 -1 -1 -1]
+
+lb = zeros(12)
+ub = [10, 10, 10, 30, 100, 30, 30, 15, 15, 20, 20, 20]
+n = size(G)[2]
+
+network_balance = Model(HiGHS.Optimizer)
+set_silent(network_balance)
+@variable(network_balance, x[1:n])
+# Arcs with zero cost are not a part of the path as they do no exist
+@constraint(network_balance, G * x >= -b)
+# Flow conservation constraint
+@constraint(network_balance, x[1:n] >= lb)
+@constraint(network_balance, x[1:n] <= ub)
+@objective(network_balance, Min, sum(c .* x))
+optimize!(network_balance)
+objective_value(network_balance)
+
+value.(x)
