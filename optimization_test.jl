@@ -63,13 +63,17 @@ n = size(G)[2]
 network_balance = Model(HiGHS.Optimizer)
 set_silent(network_balance)
 @variable(network_balance, x[1:n])
+
 # Arcs with zero cost are not a part of the path as they do no exist
-@constraint(network_balance, G * x >= -b)
 # Flow conservation constraint
+@constraint(network_balance, G * x >= -b)
+
+# Upper-Lower constraint
 @constraint(network_balance, x[1:n] >= lb)
 @constraint(network_balance, x[1:n] <= ub)
+
+# Final problem
 @objective(network_balance, Min, sum(c .* x))
 optimize!(network_balance)
 objective_value(network_balance)
-
 value.(x)
