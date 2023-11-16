@@ -1,6 +1,6 @@
 using DuckDB
 using DataFrames
-using CSV
+#using CSV
 
 con = DBInterface.connect(DuckDB.DB, ":memory:")
 #@time y = CSV.read("C:/Users/nicol/Downloads/Bioinformatics/elegant/SRR12280931.fastq.gz-aligned/abundance.tsv", DataFrame, delim = '\t')
