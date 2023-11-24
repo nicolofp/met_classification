@@ -53,7 +53,6 @@ function DirichletLogit(μ, ϕ)
     return Dirichlet(α)
 end
 
-
 @model function bwqs_soft(cx, mx, y)
     
     # Set variance prior.
@@ -68,7 +67,7 @@ end
     # Set the priors on our coefficients.
     nfeatures = size(mx, 2)
     alpha ~ filldist(Gamma(1.0,1.0), nfeatures)
-    phi ~ Gamma(2.0,2.0)
+    phi ~ Gamma(1.0,1.0)
     w ~ DirichletLogit(alpha, phi) 
     #w = softmax(alpha)
 
@@ -101,7 +100,7 @@ end
 mx1 = bwqs_soft(XC, XM, y)
 mx2 = bwqs_new(XC, XM, y)
 mx3 = bwqs(XC, XM, y)
-chain_mx1 = sample(mx1, NUTS(), 2000);#, thinning=10, discard_initial=2000);
+chain_mx1 = sample(mx1, NUTS(), 5000);#, thinning=10, discard_initial=2000);
 chain_mx2 = sample(mx2, NUTS(), 1000);
 chain_mx3 = sample(mx3, NUTS(), 1000);
 
